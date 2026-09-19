@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOLAVEX - RED TIMER + MOVING CANDLES</title>
+<title>DOLAVEX PRO - SMOOTH NO POP</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
@@ -16,7 +16,7 @@ body{background:#0b0e14;color:white}
 .demo{background:#00c853;color:white}
 .inactive{background:transparent!important;color:#888!important}
 .deposit{background:#00ff88;color:#000;border:none;padding:7px 14px;border-radius:20px;font-weight:900;font-size:11px}
-#chart{width:100%;height:46vh;background:#0b0e14}
+#chart{width:100%;height:48vh;background:#0b0e14}
 .panel{background:#151821;margin:8px;border-radius:16px;padding:12px;border:1px solid #222}
 .row{display:flex;gap:8px}
 .col{flex:1}
@@ -27,9 +27,9 @@ select,input{width:100%;background:#0b0e14;border:1px solid #2a2e45;color:white;
 .rise{flex:1;background:#00c853;color:white;border:none;padding:14px;border-radius:12px;font-weight:900}
 .fall{flex:1;background:#ff1744;color:white;border:none;padding:14px;border-radius:12px;font-weight:900}
 .msg{text-align:center;padding:8px;font-weight:bold;min-height:32px;font-size:13px}
-.livePrice{position:absolute;top:50px;left:8px;background:#000000cc;padding:5px 9px;border-radius:8px;z-index:5}
-.timerBox{position:absolute;top:50px;right:8px;background:#ff1744;color:white;padding:8px 16px;border-radius:10px;z-index:10;font-weight:900;display:none;box-shadow:0 0 15px #ff1744;border:2px solid white}
-.timerBox b{font-size:22px;color:white}
+.livePrice{position:absolute;top:52px;left:8px;background:#000000cc;padding:5px 9px;border-radius:8px;z-index:5}
+.timerBox{position:absolute;top:52px;right:8px;background:#ff1744;color:white;padding:8px 16px;border-radius:10px;z-index:10;font-weight:900;display:none;border:2px solid white;box-shadow:0 0 15px #ff1744}
+.timerBox b{font-size:22px}
 </style>
 </head>
 <body>
@@ -45,7 +45,7 @@ select,input{width:100%;background:#0b0e14;border:1px solid #2a2e45;color:white;
 
 <div style="position:relative">
   <div id="chart"></div>
-  <div class="livePrice"><b id="bigPrice">--</b><br><span style="font-size:10px;color:#888">Digit <b id="lastDigit" style="color:#00ff88">-</b> • <span id="accType" style="color:#00c853">DEMO</span></span></div>
+  <div class="livePrice"><b id="bigPrice">--</b><br><span style="font-size:10px;color:#888">Digit <b id="lastDigit" style="color:#00ff88">-</b> • <span id="accType">DEMO</span></span></div>
   <div class="timerBox" id="timerBox">⏳ <b id="countdown">5</b>s</div>
 </div>
 
@@ -59,90 +59,93 @@ select,input{width:100%;background:#0b0e14;border:1px solid #2a2e45;color:white;
     <div class="col"><label>Digit 0-9</label><select id="digitPick"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
     <div class="col"><label>Stake</label><input type="number" id="stake" value="100" min="50" max="1500" oninput="updateReturn()"></div>
   </div>
-  <div class="return" id="returnText">Return: KES 180</div>
+  <div class="return" id="returnText">Return: KES 180 (80%)</div>
   <div class="actions"><button class="rise" id="btnRise" onclick="placeTrade()">OVER</button><button class="fall" id="btnFall" onclick="placeTrade()">UNDER</button></div>
-  <div class="msg" id="msg">🟢 Chart moving - Candles + Line LIVE!</div>
+  <div class="msg" id="msg">🟢 Smooth chart - No popping!</div>
 </div>
 
 <script>
 let account='demo'; let demoBal=10000; let realBal=0; let trading=false;
-function setAccount(type){
-  account=type;
-  document.getElementById('accType').innerText=type.toUpperCase();
-  document.getElementById('accType').style.color=type==='real'?'#ff1744':'#00c853';
-  if(type==='real'){document.getElementById('realBtn').className='real';document.getElementById('demoBtn').className='demo inactive';}
-  else{document.getElementById('realBtn').className='real inactive';document.getElementById('demoBtn').className='demo';}
-  updateReturn();
-}
-function depositMpesa(){
-  let amt=prompt('M-PESA amount for REAL:','1000'); if(!amt)return; amt=parseFloat(amt); if(isNaN(amt)||amt<50){alert('Min 50');return;}
-  realBal+=amt; updateReturn(); setAccount('real'); alert('✅ Added KES '+amt+' to REAL!');
-}
-function updateUI(){
-  let t=document.getElementById('tradeType').value; let pred=document.getElementById('prediction'); let btnR=document.getElementById('btnRise'); let btnF=document.getElementById('btnFall');
-  if(t==='risefall'){pred.innerHTML='<option value="RISE">Rise</option><option value="FALL">Fall</option>';btnR.innerText='RISE ⬆️';btnF.innerText='FALL ⬇️';}
-  else if(t==='overunder'){pred.innerHTML='<option value="OVER">Over</option><option value="UNDER">Under</option>';btnR.innerText='OVER';btnF.innerText='UNDER';}
-  else if(t==='matches'){pred.innerHTML='<option value="MATCHES">Matches</option><option value="DIFFERS">Differs</option>';btnR.innerText='MATCHES';btnF.innerText='DIFFERS';}
-  else if(t==='evenodd'){pred.innerHTML='<option value="EVEN">Even</option><option value="ODD">Odd</option>';btnR.innerText='EVEN';btnF.innerText='ODD';}
-}
-function updateReturn(){let s=parseFloat(document.getElementById('stake').value)||100;document.getElementById('returnText').innerText=`Return: KES ${(s*1.8).toFixed(0)} (80%) • ${account.toUpperCase()} • KES ${account==='demo'?demoBal.toFixed(0):realBal.toFixed(0)}`;document.getElementById('demoBalTxt').innerText=demoBal.toFixed(0);document.getElementById('realBalTxt').innerText=realBal.toFixed(0);}
+function setAccount(t){account=t; document.getElementById('accType').innerText=t.toUpperCase(); document.getElementById('accType').style.color=t==='real'?'#ff1744':'#00c853'; if(t==='real'){document.getElementById('realBtn').className='real';document.getElementById('demoBtn').className='demo inactive';}else{document.getElementById('realBtn').className='real inactive';document.getElementById('demoBtn').className='demo';} updateReturn();}
+function depositMpesa(){let a=prompt('M-PESA amount for REAL:','1000'); if(!a)return; a=parseFloat(a); if(isNaN(a)||a<50){alert('Min 50');return;} realBal+=a; updateReturn(); setAccount('real'); alert('✅ KES '+a+' added to REAL!');}
+function updateUI(){let t=document.getElementById('tradeType').value; let p=document.getElementById('prediction'); let r=document.getElementById('btnRise'); let f=document.getElementById('btnFall'); if(t==='risefall'){p.innerHTML='<option value="RISE">Rise</option><option value="FALL">Fall</option>';r.innerText='RISE ⬆️';f.innerText='FALL ⬇️';}else if(t==='overunder'){p.innerHTML='<option value="OVER">Over</option><option value="UNDER">Under</option>';r.innerText='OVER';f.innerText='UNDER';}else if(t==='matches'){p.innerHTML='<option value="MATCHES">Matches</option><option value="DIFFERS">Differs</option>';r.innerText='MATCHES';f.innerText='DIFFERS';}else if(t==='evenodd'){p.innerHTML='<option value="EVEN">Even</option><option value="ODD">Odd</option>';r.innerText='EVEN';f.innerText='ODD';}}
+function updateReturn(){let s=parseFloat(document.getElementById('stake').value)||100; document.getElementById('returnText').innerText=`Return: KES ${(s*1.8).toFixed(0)} (80%) • ${account.toUpperCase()} • KES ${account==='demo'?demoBal.toFixed(0):realBal.toFixed(0)}`; document.getElementById('demoBalTxt').innerText=demoBal.toFixed(0); document.getElementById('realBalTxt').innerText=realBal.toFixed(0);}
 updateUI();
 
 const chartEl=document.getElementById('chart');
 const chart=LightweightCharts.createChart(chartEl,{layout:{background:{color:'#0b0e14'},textColor:'#555'},grid:{vertLines:{color:'#111'},horzLines:{color:'#111'}},width:chartEl.clientWidth,height:chartEl.clientHeight,rightPriceScale:{borderColor:'#222'},timeScale:{borderColor:'#222',timeVisible:true,secondsVisible:true}});
 const candleSeries=chart.addCandlestickSeries({upColor:'#00ff88',downColor:'#ff1744',borderVisible:false,wickUpColor:'#00ff88',wickDownColor:'#ff1744'});
 const lineSeries=chart.addLineSeries({color:'#00ff88',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
-let lineData=[]; let price=81500; let data=[]; let now=Math.floor(Date.now()/1000);
-for(let i=80;i>=0;i--){let o=price+(Math.random()-0.5)*100;let c=o+(Math.random()-0.5)*100;let h=Math.max(o,c)+Math.random()*40;let l=Math.min(o,c)-Math.random()*40;data.push({time:now-i,open:o,high:h,low:l,close:c});price=c;}
-candleSeries.setData(data);
-lineData=data.map(d=>({time:d.time,value:d.close}));
-lineSeries.setData(lineData);
 
+let price=81270; let data=[]; let lineData=[];
+let now=Math.floor(Date.now()/1000)-60;
+for(let i=0;i<60;i++){
+  let o=price; let c=o+(Math.random()-0.5)*10; let h=Math.max(o,c)+Math.random()*5; let l=Math.min(o,c)-Math.random()*5;
+  let d={time:now+i,open:o,high:h,low:l,close:c};
+  data.push(d); lineData.push({time:d.time,value:c}); price=c;
+}
+candleSeries.setData(data); lineSeries.setData(lineData);
 function getLastDigit(p){return Math.abs(Math.floor((p*100)%10));}
 
+// SMOOTH NO POPPING LOGIC
 async function fetchLive(){
   try{
     let res=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-    let j=await res.json(); let c=parseFloat(j.price); price=c;
-  }catch(e){price+=(Math.random()-0.5)*40;}
+    let j=await res.json(); price=parseFloat(j.price);
+  }catch(e){ price+=(Math.random()-0.5)*6; }
+
   let t=Math.floor(Date.now()/1000);
-  // NEW CANDLE EVERY SECOND - MAKES CANDLES MOVE!
-  let lastClose=data.length?data[data.length-1].close:price;
-  let open=lastClose;
-  let close=price;
-  let high=Math.max(open,close)+Math.random()*15;
-  let low=Math.min(open,close)-Math.random()*15;
-  let newCandle={time:t,open:open,high:high,low:low,close:close};
-  data.push(newCandle);
-  if(data.length>100) data.shift();
-  candleSeries.setData(data);
-  // GREEN LINE MOVING
-  lineData.push({time:t,value:price});
-  if(lineData.length>100) lineData.shift();
+  let last=data[data.length-1];
+
+  if(t===last.time){
+    // same second -> just update close, NO new candle
+    last.close=price;
+    last.high=Math.max(last.high,price);
+    last.low=Math.min(last.low,price);
+    candleSeries.update(last);
+  } else if(t > last.time){
+    // only 1 new candle every 3 sec
+    if((t - last.time) >= 3){
+      let nc={time:t, open:last.close, high:Math.max(last.close,price), low:Math.min(last.close,price), close:price};
+      data.push(nc);
+      if(data.length>80) data.shift();
+      candleSeries.setData(data);
+    } else {
+      last.close=price;
+      last.high=Math.max(last.high,price);
+      last.low=Math.min(last.low,price);
+      candleSeries.update(last);
+    }
+  }
+
+  // green line moves every sec smoothly
+  if(lineData.length===0 || lineData[lineData.length-1].time!==t){
+    lineData.push({time:t,value:price});
+    if(lineData.length>80) lineData.shift();
+  } else {
+    lineData[lineData.length-1].value=price;
+  }
   lineSeries.setData(lineData);
   chart.timeScale().scrollToRealTime();
+
   document.getElementById('topPrice').innerText=price.toFixed(2);
   document.getElementById('bigPrice').innerText=price.toFixed(2);
   document.getElementById('lastDigit').innerText=getLastDigit(price);
 }
 setInterval(fetchLive,1000); fetchLive();
+window.onresize=()=>chart.applyOptions({width:chartEl.clientWidth,height:chartEl.clientHeight});
 
 function placeTrade(){
-  if(trading){alert('Wait for timer!');return;}
+  if(trading){alert('Trade running!');return;}
   let stake=parseFloat(document.getElementById('stake').value); let type=document.getElementById('tradeType').value; let pred=document.getElementById('prediction').value; let digitPick=parseInt(document.getElementById('digitPick').value); let duration=parseInt(document.getElementById('duration').value);
-  let curBal=account==='demo'?demoBal:realBal;
-  if(curBal<stake){alert('No balance');return;}
+  let curBal=account==='demo'?demoBal:realBal; if(curBal<stake){alert('No balance');return;}
   if(account==='demo')demoBal-=stake;else realBal-=stake; updateReturn();
   let entry=price; let entryDigit=getLastDigit(entry);
-  trading=true; 
-  let box=document.getElementById('timerBox'); box.style.display='block'; box.style.background='#ff1744'; box.style.color='white';
-  let left=duration; document.getElementById('countdown').innerText=left;
-  document.getElementById('msg').innerHTML=`⏳ <b style="color:#ff1744">${left}s</b> - Entry Digit ${entryDigit} - Watching...`;
+  trading=true; let box=document.getElementById('timerBox'); box.style.display='block'; let left=duration; document.getElementById('countdown').innerText=left;
+  document.getElementById('msg').innerHTML=`⏳ <b style="color:#ff1744">${left}s</b> Entry ${entryDigit} watching...`; document.getElementById('msg').style.color='#ffab00';
   let timer=setInterval(()=>{
-    left--; document.getElementById('countdown').innerText=left;
-    // FLASH RED
-    box.style.background=left%2===0?'#ff1744':'#cc0000';
-    document.getElementById('msg').innerHTML=`⏳ <b style="color:#ff1744;font-size:16px">${left}s</b> left... Entry ${entryDigit} vs Live <b style="color:#00ff88">${getLastDigit(price)}</b>`;
+    left--; document.getElementById('countdown').innerText=left; box.style.background=left%2===0?'#ff1744':'#aa0000';
+    document.getElementById('msg').innerHTML=`⏳ <b style="color:#ff1744;font-size:18px">${left}s</b> left... Entry ${entryDigit} vs Live <b style="color:#00ff88">${getLastDigit(price)}</b>`;
     if(left<=0){
       clearInterval(timer); box.style.display='none'; trading=false;
       let exit=price; let exitDigit=getLastDigit(exit); let win=false;
@@ -150,8 +153,8 @@ function placeTrade(){
       else if(type==='overunder'){win=pred==='OVER'?exitDigit>digitPick:exitDigit<digitPick;}
       else if(type==='matches'){win=pred==='MATCHES'?exitDigit===digitPick:exitDigit!==digitPick;}
       else if(type==='evenodd'){win=pred==='EVEN'?exitDigit%2===0:exitDigit%2===1;}
-      if(win){let profit=stake*0.8; if(account==='demo')demoBal+=stake+profit;else realBal+=stake+profit; document.getElementById('msg').innerHTML=`✅ WIN! ${entryDigit}→${exitDigit} +KES ${profit.toFixed(0)}`;document.getElementById('msg').style.color='#00ff88';}
-      else{document.getElementById('msg').innerHTML=`❌ LOSS! ${entryDigit}→${exitDigit} -KES ${stake}`;document.getElementById('msg').style.color='#ff1744';}
+      if(win){let profit=stake*0.8; if(account==='demo')demoBal+=stake+profit;else realBal+=stake+profit; document.getElementById('msg').innerHTML=`✅ WIN! ${entryDigit}→${exitDigit} +KES ${profit.toFixed(0)}`; document.getElementById('msg').style.color='#00ff88';}
+      else{document.getElementById('msg').innerHTML=`❌ LOSS! ${entryDigit}→${exitDigit} -KES ${stake}`; document.getElementById('msg').style.color='#ff1744';}
       updateReturn();
     }
   },1000);
