@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOLAVEX PRO LIVE - FIXED</title>
+<title>DOLAVEX PRO LIVE - MOVING CHART</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
@@ -93,8 +93,10 @@ function updateReturn(){let s=parseFloat(document.getElementById('stake').value)
 updateUI();
 
 const chartEl=document.getElementById('chart');
-const chart=LightweightCharts.createChart(chartEl,{layout:{background:{color:'#0b0e14'},textColor:'#555'},grid:{vertLines:{color:'#111'},horzLines:{color:'#111'}},width:chartEl.clientWidth,height:chartEl.clientHeight,rightPriceScale:{borderColor:'#222'},timeScale:{borderColor:'#222',timeVisible:true,secondsVisible:false}});
+const chart=LightweightCharts.createChart(chartEl,{layout:{background:{color:'#0b0e14'},textColor:'#555'},grid:{vertLines:{color:'#111'},horzLines:{color:'#111'}},width:chartEl.clientWidth,height:chartEl.clientHeight,rightPriceScale:{borderColor:'#222'},timeScale:{borderColor:'#222',timeVisible:true,secondsVisible:true}});
 const series=chart.addCandlestickSeries({upColor:'#00ff88',downColor:'#ff1744',borderVisible:false,wickUpColor:'#00ff88',wickDownColor:'#ff1744'});
+const lineSeries = chart.addLineSeries({color:'#00ff88', lineWidth:2, priceLineVisible:false, lastValueVisible:false});
+let lineData = [];
 
 let price=81000; let data=[]; let now=Math.floor(Date.now()/1000);
 for(let i=80;i>=0;i--){let o=price+(Math.random()-0.5)*200;let c=o+(Math.random()-0.5)*300;let h=Math.max(o,c)+Math.random()*80;let l=Math.min(o,c)-Math.random()*80;data.push({time:now-i*60,open:o,high:h,low:l,close:c});price=c;}
@@ -111,16 +113,19 @@ async function fetchLive(){
     let updated={time:last.time, open:last.open, high:Math.max(last.high,c), low:Math.min(last.low,c), close:c};
     data[data.length-1]=updated;
     series.update(updated);
+    lineData.push({time:Math.floor(Date.now()/1000), value:c});
+    if(lineData.length>150) lineData.shift();
+    lineSeries.setData(lineData);
+    chart.timeScale().scrollToRealTime();
     document.getElementById('topPrice').innerText=c.toFixed(2);
     document.getElementById('bigPrice').innerText=c.toFixed(2);
     document.getElementById('lastDigit').innerText=getLastDigit(c);
   }catch(e){
-    // fallback simulation if Binance blocked
-    let o=price; let c=o+(Math.random()-0.5)*60;
-    let last=data[data.length-1];
-    let updated={time:Math.floor(Date.now()/1000), open:last.open, high:Math.max(last.high,c), low:Math.min(last.low,c), close:c};
-    series.update(updated);
-    price=c;
+    let c=price+(Math.random()-0.5)*30; price=c;
+    lineData.push({time:Math.floor(Date.now()/1000), value:c});
+    if(lineData.length>150) lineData.shift();
+    lineSeries.setData(lineData);
+    chart.timeScale().scrollToRealTime();
     document.getElementById('topPrice').innerText=c.toFixed(2);
     document.getElementById('bigPrice').innerText=c.toFixed(2);
     document.getElementById('lastDigit').innerText=getLastDigit(c);
@@ -131,7 +136,7 @@ fetchLive();
 setInterval(()=>{
   let o=price; let c=o+(Math.random()-0.5)*100; let h=Math.max(o,c)+Math.random()*50; let l=Math.min(o,c)-Math.random()*50;
   let nc={time:Math.floor(Date.now()/1000), open:o, high:h, low:l, close:c};
-  data.push(nc); series.setData(data); chart.timeScale().scrollToRealTime();
+  data.push(nc); series.setData(data); 
 },60000);
 
 window.onresize=()=>chart.applyOptions({width:chartEl.clientWidth,height:chartEl.clientHeight});
