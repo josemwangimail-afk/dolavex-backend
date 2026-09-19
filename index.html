@@ -1,9 +1,220 @@
-<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOLAVEX</title>
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0e14;color:#ddd;font-family:system-ui}.header{background:#111827;padding:12px;display:flex;justify-content:space-between;border-bottom:1px solid #1f2937}.logo{font-weight:900;color:#00ff88;font-size:22px}#chart{height:55vh;width:100%}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}.panel{background:#151a23;border-radius:12px;padding:12px;border:1px solid #1f2937}.btn{width:100%;padding:14px;border-radius:10px;border:none;font-weight:800}.buy{background:#00c853;color:white}.sell{background:#d50000;color:white}input{width:100%;padding:10px;background:#0a0e14;border:1px solid #2a3441;border-radius:8px;color:white;margin:6px 0}</style></head><body>
-<div class="header"><div class="logo">DOLAVEX</div><div style="color:#00ff88">● LIVE <span id="price">$67432</span></div><div>BTC/USDT</div></div>
-<div id="chart"></div>
-<div class="controls"><div class="panel"><h4 style="color:#00c853">BUY</h4><input value="100"><button class="btn buy">BUY BTC</button></div><div class="panel"><h4 style="color:#ff1744">SELL</h4><input value="100"><button class="btn sell">SELL BTC</button></div></div>
-<script>const el=document.getElementById('chart');const chart=LightweightCharts.createChart(el,{layout:{background:{color:'#0a0e14'},textColor:'#8b9bb4'},grid:{vertLines:{color:'#1a2233'},horzLines:{color:'#1a2233'}},width:el.clientWidth,height:el.clientHeight});const s=chart.addCandlestickSeries({upColor:'#00c853',downColor:'#d50000'});let d=[],base=67432,t=Math.floor(Date.now()/1000)-300*60;for(let i=0;i<300;i++){let o=base+(Math.random()-.5)*200,c=o+(Math.random()-.5)*150,h=Math.max(o,c)+80,l=Math.min(o,c)-80;d.push({time:t+i*60,open:o,high:h,low:l,close:c});base=c;}s.setData(d);setInterval(()=>{let last=d[d.length-1];let nc=last.close+(Math.random()-.5)*40;let c={time:last.time+60,open:last.close,high:Math.max(last.close,nc)+20,low:Math.min(last.close,nc)-20,close:nc};d.push(c);if(d.length>400)d.shift();s.setData(d);document.getElementById('price').innerText='$'+nc.toFixed(2);},1000);</script></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOLAVEX PRO LIVE</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#0b0e14;color:white}
+.top{display:flex;justify-content:space-between;padding:12px 15px;background:#0b0e14;border-bottom:1px solid #1f2333;align-items:center}
+.logo{color:#00ff88;font-weight:900;font-size:22px}
+.live{color:#00ff88;font-weight:bold}
+.pair{color:#aaa;font-size:14px}
+#chart{width:100%;height:52vh;background:#0b0e14}
+.panel{background:#151821;margin:10px;border-radius:16px;padding:14px;border:1px solid #222}
+.row{display:flex;gap:10px}
+.col{flex:1}
+label{font-size:11px;color:#888;display:block;margin:10px 0 5px;text-transform:uppercase;letter-spacing:1px}
+select,input{width:100%;background:#0b0e14;border:1px solid #2a2e45;color:white;padding:12px;border-radius:10px;font-size:14px}
+.return{color:#00ff88;font-weight:bold;margin:12px 0;font-size:14px;text-align:center}
+.actions{display:flex;gap:10px}
+.rise{flex:1;background:#00c853;color:white;border:none;padding:16px;border-radius:12px;font-weight:900;font-size:15px}
+.fall{flex:1;background:#ff1744;color:white;border:none;padding:16px;border-radius:12px;font-weight:900;font-size:15px}
+.balance{font-size:13px;color:#00ff88;font-weight:bold}
+.msg{text-align:center;padding:10px;font-weight:bold;min-height:30px}
+.livePrice{position:absolute;top:55px;left:12px;background:#000000cc;padding:6px 12px;border-radius:8px;z-index:5}
+.livePrice b{font-size:22px}
+.livePrice span{font-size:11px;color:#888;display:block}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">DOLAVEX</div>
+  <div class="live">● LIVE $<span id="topPrice">66871.55</span></div>
+  <div class="pair">BTC/USDT • <span class="balance">KES <span id="bal">10000</span> DEMO</span></div>
+</div>
+
+<div style="position:relative">
+  <div id="chart"></div>
+  <div class="livePrice">
+    <b id="bigPrice">66871.55</b>
+    <span>Last Digit: <b id="lastDigit" style="color:#00ff88;font-size:14px">5</b></span>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <div class="col">
+      <label>Trade Type</label>
+      <select id="tradeType" onchange="updateUI()">
+        <option value="risefall">Rise / Fall</option>
+        <option value="overunder">Digit Over / Under</option>
+        <option value="matches">Digit Matches / Differs</option>
+        <option value="evenodd">Digit Even / Odd</option>
+      </select>
+    </div>
+    <div class="col">
+      <label id="digitLabel">Prediction</label>
+      <select id="prediction"></select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <label>Digit Picker 0-9 (for digit trades)</label>
+      <select id="digitPick">
+        <option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option>
+      </select>
+    </div>
+    <div class="col">
+      <label>Stake 50-1500</label>
+      <input type="number" id="stake" value="100" min="50" max="1500" oninput="updateReturn()">
+    </div>
+  </div>
+
+  <div class="return" id="returnText">Return: KES 180 (80% Profit)</div>
+
+  <div class="actions">
+    <button class="rise" id="btnRise" onclick="placeTrade('RISE')">RISE ⬆️</button>
+    <button class="fall" id="btnFall" onclick="placeTrade('FALL')">FALL ⬇️</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+
+<script>
+// UI LOGIC FOR ALL TRADE TYPES
+function updateUI(){
+  let t = document.getElementById('tradeType').value;
+  let pred = document.getElementById('prediction');
+  let btnR = document.getElementById('btnRise');
+  let btnF = document.getElementById('btnFall');
+  
+  if(t==='risefall'){
+    pred.innerHTML='<option value="RISE">Rise</option><option value="FALL">Fall</option>';
+    document.getElementById('digitLabel').innerText='Prediction';
+    btnR.innerText='RISE ⬆️'; btnF.innerText='FALL ⬇️';
+    btnR.style.display='block'; btnF.style.display='block';
+  } else if(t==='overunder'){
+    pred.innerHTML='<option value="OVER">Over</option><option value="UNDER">Under</option>';
+    document.getElementById('digitLabel').innerText='Over / Under';
+    btnR.innerText='OVER'; btnF.innerText='UNDER';
+  } else if(t==='matches'){
+    pred.innerHTML='<option value="MATCHES">Matches</option><option value="DIFFERS">Differs</option>';
+    document.getElementById('digitLabel').innerText='Matches / Differs';
+    btnR.innerText='MATCHES'; btnF.innerText='DIFFERS';
+  } else if(t==='evenodd'){
+    pred.innerHTML='<option value="EVEN">Even</option><option value="ODD">Odd</option>';
+    document.getElementById('digitLabel').innerText='Even / Odd';
+    btnR.innerText='EVEN'; btnF.innerText='ODD';
+  }
+  updateReturn();
+}
+updateUI();
+
+function updateReturn(){
+  let s = parseFloat(document.getElementById('stake').value)||100;
+  document.getElementById('returnText').innerText = `Return: KES ${(s*1.8).toFixed(0)} (80% Profit) • Last Digit Wins`;
+}
+
+// GREEN MOVING CHART - FIXED NO BLACK SCREEN
+const chartEl = document.getElementById('chart');
+const chart = LightweightCharts.createChart(chartEl, {
+  layout:{background:{color:'#0b0e14'},textColor:'#555'},
+  grid:{vertLines:{color:'#111'},horzLines:{color:'#111'}},
+  width: chartEl.clientWidth, height: chartEl.clientHeight,
+  rightPriceScale:{borderColor:'#222'}, timeScale:{borderColor:'#222', timeVisible:true}
+});
+const series = chart.addCandlestickSeries({upColor:'#00ff88',downColor:'#ff1744',borderVisible:false,wickUpColor:'#00ff88',wickDownColor:'#ff1744'});
+
+let price = 66871.55;
+let data=[];
+let now = Math.floor(Date.now()/1000);
+for(let i=80;i>=0;i--){
+  let o = price + (Math.random()-0.5)*200;
+  let c = o + (Math.random()-0.5)*300;
+  let h = Math.max(o,c)+Math.random()*80;
+  let l = Math.min(o,c)-Math.random()*80;
+  data.push({time:now-i*60, open:o, high:h, low:l, close:c});
+  price=c;
+}
+series.setData(data);
+
+function getLastDigit(p){ return Math.abs(Math.floor((p*100)%10)); } // last digit like Deriv
+
+// LIVE BINANCE FEED
+let ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@kline_1m');
+ws.onmessage = (e)=>{
+  let k=JSON.parse(e.data).k;
+  let c=parseFloat(k.c);
+  let candle={time:Math.floor(k.t/1000), open:parseFloat(k.o), high:parseFloat(k.h), low:parseFloat(k.l), close:c};
+  series.update(candle);
+  document.getElementById('topPrice').innerText=c.toFixed(2);
+  document.getElementById('bigPrice').innerText=c.toFixed(2);
+  document.getElementById('lastDigit').innerText=getLastDigit(c);
+  price=c;
+};
+setInterval(()=>{
+  if(ws.readyState!==1){
+    let o=price; let c=o+(Math.random()-0.5)*70;
+    let h=Math.max(o,c)+Math.random()*30; let l=Math.min(o,c)-Math.random()*30;
+    let tick={time:Math.floor(Date.now()/1000), open:o, high:h, low:l, close:c};
+    series.update(tick); price=c;
+    document.getElementById('topPrice').innerText=c.toFixed(2);
+    document.getElementById('bigPrice').innerText=c.toFixed(2);
+    document.getElementById('lastDigit').innerText=getLastDigit(c);
+  }
+},1200);
+
+window.onresize=()=>chart.applyOptions({width:chartEl.clientWidth,height:chartEl.clientHeight});
+
+// PRO TRADING LOGIC - ALL OPTIONS WORKING
+let balance=10000;
+function placeTrade(side){
+  let stake=parseFloat(document.getElementById('stake').value);
+  let type=document.getElementById('tradeType').value;
+  let pred=document.getElementById('prediction').value;
+  let digitPick=parseInt(document.getElementById('digitPick').value);
+  if(stake<50||stake>1500){alert('Stake 50-1500');return;}
+  if(balance<stake){alert('No balance');return;}
+  
+  balance-=stake; document.getElementById('bal').innerText=balance.toFixed(0);
+  let entry=price;
+  let entryDigit=getLastDigit(entry);
+  document.getElementById('msg').innerHTML=`⏳ Trade ${pred} at ${entry.toFixed(2)} (Digit ${entryDigit}) for KES ${stake}... 5s`;
+  document.getElementById('msg').style.color='#ffab00';
+  
+  setTimeout(()=>{
+    let exit=price;
+    let exitDigit=getLastDigit(exit);
+    let win=false;
+    
+    if(type==='risefall'){
+      win = (pred==='RISE' && exit>entry) || (pred==='FALL' && exit<entry);
+    } else if(type==='overunder'){
+      if(pred==='OVER') win = exitDigit > digitPick;
+      else win = exitDigit < digitPick;
+    } else if(type==='matches'){
+      if(pred==='MATCHES') win = exitDigit===digitPick;
+      else win = exitDigit!==digitPick;
+    } else if(type==='evenodd'){
+      if(pred==='EVEN') win = exitDigit%2===0;
+      else win = exitDigit%2===1;
+    }
+    
+    if(win){
+      let profit=stake*0.8;
+      balance+=stake+profit;
+      document.getElementById('msg').innerHTML=`✅ WIN! Exit ${exit.toFixed(2)} Digit ${exitDigit} +KES ${profit.toFixed(0)}`;
+      document.getElementById('msg').style.color='#00ff88';
+    } else {
+      document.getElementById('msg').innerHTML=`❌ LOSS! Exit ${exit.toFixed(2)} Digit ${exitDigit} -KES ${stake}`;
+      document.getElementById('msg').style.color='#ff1744';
+    }
+    document.getElementById('bal').innerText=balance.toFixed(0);
+  },5000);
+}
+</script>
+</body>
+</html>
