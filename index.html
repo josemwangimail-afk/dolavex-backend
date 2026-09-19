@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOLAVEX V6.1 - FULL PRO</title>
+<title>DOLAVEX V6.2 - ADMIN READY</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
@@ -81,7 +81,7 @@ select,input{width:100%;background:#0b0e14;border:1px solid #2a2e45;color:white;
   </div>
   <div class="return" id="returnText">Return: KES 120 (20%)</div>
   <div class="actions"><button class="rise" id="btnRise" onclick="placeTrade()">OVER</button><button class="fall" id="btnFall" onclick="placeTrade()">UNDER</button></div>
-  <div class="msg" id="msg">🟢 Register - OTP 4 digits verification</div>
+  <div class="msg" id="msg">🟢 Admin ready - withdrawals go to admin</div>
 </div>
 
 <div class="modal" id="loginModal"><div class="modalBox"><h3>LOGIN</h3><input id="loginPhone" placeholder="Phone 07xx"><input id="loginPass" type="password" placeholder="Password"><button style="background:#00ff88" onclick="doLogin()">LOGIN</button><button style="background:#222;color:white" onclick="closeModals()">CANCEL</button></div></div>
@@ -111,7 +111,28 @@ function doLogin(){let phone=document.getElementById('loginPhone').value.trim();
 function loggedInUI(){document.getElementById('landingAuth').style.display='none'; document.getElementById('userMenu').style.display='block'; document.getElementById('userNameShow').innerText=(currentUser?.username||'USER').toUpperCase();}
 function logout(){localStorage.removeItem('dolavex_user'); location.reload();}
 function stkPushFromMenu(){let ph=document.getElementById('depPhone').value; let amt=parseFloat(document.getElementById('depAmt').value); if(!ph||isNaN(amt)){alert('Enter phone & amount');return;} document.getElementById('depMsg').innerText=`⏳ STK PUSH KES ${amt} to ${ph}...`; setTimeout(()=>{realBal+=amt; updateReturn(); document.getElementById('depMsg').innerText=`✅ KES ${amt} added to REAL!`; let u=JSON.parse(localStorage.getItem('dolavex_user')||'{}'); u.realBal=realBal; localStorage.setItem('dolavex_user',JSON.stringify(u));},2000);}
-function doWithdrawFromMenu(){let ph=document.getElementById('withPhone').value; let amt=parseFloat(document.getElementById('withAmt').value); if(isNaN(amt)||amt<100){alert('Min 100');return;} if(realBal<amt){alert('Insufficient');return;} document.getElementById('withMsg').innerText=`⏳ Sending KES ${amt} to ${ph}...`; setTimeout(()=>{realBal-=amt; updateReturn(); document.getElementById('withMsg').innerText=`✅ KES ${amt} sent to ${ph}!`; let u=JSON.parse(localStorage.getItem('dolavex_user')||'{}'); u.realBal=realBal; localStorage.setItem('dolavex_user',JSON.stringify(u));},2000);}
+function doWithdrawFromMenu(){
+  let ph=document.getElementById('withPhone').value;
+  let amt=parseFloat(document.getElementById('withAmt').value);
+  if(isNaN(amt)||amt<100){alert('Min 100');return;}
+  if(realBal<amt){alert('Insufficient REAL balance');return;}
+
+  // ✅ AFTER VALIDATION - SAVE TO ADMIN PANEL
+  let withdraws=JSON.parse(localStorage.getItem('dolavex_withdraws')||'[]');
+  withdraws.push({username:currentUser.username, phone:ph, amount:amt, status:'pending', time:new Date().toLocaleString()});
+  localStorage.setItem('dolavex_withdraws',JSON.stringify(withdraws));
+
+  document.getElementById('withMsg').innerText=`⏳ Request KES ${amt} to ${ph}... Saving to admin`;
+  setTimeout(()=>{
+    realBal-=amt;
+    updateReturn();
+    document.getElementById('withMsg').innerText=`✅ Request sent! KES ${amt} - Check admin panel for approval`;
+    let u=JSON.parse(localStorage.getItem('dolavex_user')||'{}');
+    u.realBal=realBal;
+    localStorage.setItem('dolavex_user',JSON.stringify(u));
+  },1500);
+}
+
 updateUI();
 const chartEl=document.getElementById('chart');
 const chart=LightweightCharts.createChart(chartEl,{layout:{background:{color:'#0b0e14'},textColor:'#555'},grid:{vertLines:{color:'#111'},horzLines:{color:'#111'}},width:chartEl.clientWidth,height:chartEl.clientHeight,rightPriceScale:{borderColor:'#222'},timeScale:{borderColor:'#222',timeVisible:true,secondsVisible:true}});
@@ -121,8 +142,14 @@ let price=81212.99; let data=[]; let lineData=[]; let now=Math.floor(Date.now()/
 for(let i=0;i<60;i++){let o=price; let c=o+(Math.random()-0.5)*8; let h=Math.max(o,c)+Math.random()*4; let l=Math.min(o,c)-Math.random()*4; let d={time:now+i,open:o,high:h,low:l,close:c}; data.push(d); lineData.push({time:d.time,value:c}); price=c;}
 candleSeries.setData(data); lineSeries.setData(lineData);
 function getLastDigit(p){return Math.abs(Math.floor((p*100)%10));}
+let firstFetch=true;
 async function fetchLive(){
-  try{let res=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'); let j=await res.json(); price=parseFloat(j.price);}catch(e){price+=(Math.random()-0.5)*6;}
+  try{
+    let res=await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
+    let j=await res.json();
+    let newPrice=parseFloat(j.price);
+    if(firstFetch){price=newPrice; data=data.map(d=>({...d, open:price, high:price+2, low:price-2, close:price})); lineData=lineData.map(d=>({...d, value:price})); firstFetch=false; } else { if(Math.abs(newPrice-price)>100) return; price=newPrice; }
+  }catch(e){price+=(Math.random()-0.5)*3;}
   let t=Math.floor(Date.now()/1000); let last=data[data.length-1];
   if(t===last.time){last.close=price; last.high=Math.max(last.high,price); last.low=Math.min(last.low,price); candleSeries.update(last);}
   else if(t>last.time){if((t-last.time)>=3){let nc={time:t,open:last.close,high:Math.max(last.close,price),low:Math.min(last.close,price),close:price}; data.push(nc); if(data.length>80)data.shift(); candleSeries.setData(data);}else{last.close=price; last.high=Math.max(last.high,price); last.low=Math.min(last.low,price); candleSeries.update(last);}}
