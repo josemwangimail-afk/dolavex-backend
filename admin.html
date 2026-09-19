@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOLAVEX ADMIN</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#0b0e14;color:white;padding:14px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px;background:#151821;border-radius:12px;border:1px solid #222}
+.logo{color:#00ff88;font-weight:900}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.card{background:#151821;padding:14px;border-radius:12px;border:1px solid #222;text-align:center}
+.card b{font-size:22px;color:#00ff88;display:block}
+.card span{font-size:11px;color:#888}
+table{width:100%;background:#151821;border-radius:12px;overflow:hidden;border:1px solid #222;margin-top:10px}
+th{font-size:10px;color:#888;padding:10px;text-align:left;background:#0f121a}
+td{font-size:12px;padding:10px;border-top:1px solid #222}
+input{width:100%;background:#0b0e14;border:1px solid #333;color:white;padding:8px;border-radius:8px}
+.btn{border:none;padding:6px 10px;border-radius:8px;font-weight:900;font-size:11px;cursor:pointer}
+.green{background:#00ff88;color:#000}
+.red{background:#ff1744;color:white}
+.loginBox{max-width:360px;margin:80px auto;background:#151821;padding:20px;border-radius:16px;border:1px solid #333;text-align:center}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="loginBox">
+  <h2 style="color:#00ff88">🔐 ADMIN LOGIN</h2>
+  <p style="font-size:11px;color:#888;margin:8px 0">Default: admin / Admin@123</p>
+  <input id="adminUser" placeholder="Username" style="margin:8px 0">
+  <input id="adminPass" type="password" placeholder="Password" style="margin:8px 0">
+  <button class="btn green" style="width:100%;padding:12px" onclick="adminLogin()">LOGIN</button>
+  <p id="loginMsg" style="font-size:11px;margin-top:8px;color:#ff1744"></p>
+</div>
+
+<div id="adminPanel" style="display:none">
+  <div class="top">
+    <div class="logo">DOLAVEX ADMIN</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn green" onclick="location.href='/'">VIEW SITE</button>
+      <button class="btn red" onclick="adminLogout()">LOGOUT</button>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card"><b id="totalUsers">0</b><span>TOTAL USERS</span></div>
+    <div class="card"><b id="totalReal">0</b><span>TOTAL REAL KES</span></div>
+    <div class="card"><b id="totalDemo">0</b><span>TOTAL DEMO</span></div>
+    <div class="card"><b id="pendingWith">0</b><span>PENDING WITHDRAWS</span></div>
+  </div>
+
+  <h3 style="margin:10px 0;color:#00ff88">👥 Users (from localStorage)</h3>
+  <table>
+    <thead><tr><th>USERNAME</th><th>PHONE</th><th>REAL</th><th>DEMO</th><th>ACTION</th></tr></thead>
+    <tbody id="usersTable"></tbody>
+  </table>
+
+  <h3 style="margin:16px 0 10px;color:#00ff88">💸 Withdraw Requests</h3>
+  <table>
+    <thead><tr><th>USER</th><th>PHONE</th><th>AMOUNT</th><th>STATUS</th><th>ACTION</th></tr></thead>
+    <tbody id="withdrawTable"><tr><td colspan="5" style="text-align:center;color:#888">No withdraws yet - will appear when user clicks withdraw</td></tr></tbody>
+  </table>
+
+  <h3 style="margin:16px 0 10px;color:#00ff88">⚙️ Settings</h3>
+  <div style="background:#151821;padding:14px;border-radius:12px;border:1px solid #222">
+    <label style="font-size:11px;color:#888">Change Admin Password</label>
+    <div style="display:flex;gap:8px;margin-top:6px"><input id="newAdminPass" placeholder="New Password >5 + special"><button class="btn green" onclick="changeAdminPass()">SAVE</button></div>
+    <button class="btn red" style="margin-top:12px;width:100%" onclick="clearAllData()">🗑️ CLEAR ALL USER DATA (RESET)</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_ADMIN={u:'admin',p:'Admin@123'};
+let adminCred=JSON.parse(localStorage.getItem('dolavex_admin')||'null')||DEFAULT_ADMIN;
+
+function adminLogin(){
+  let u=document.getElementById('adminUser').value.trim();
+  let p=document.getElementById('adminPass').value.trim();
+  if(u===adminCred.u && p===adminCred.p){
+    localStorage.setItem('dolavex_admin_logged','1');
+    showPanel();
+  } else {
+    document.getElementById('loginMsg').innerText='❌ Wrong username/password';
+  }
+}
+function adminLogout(){localStorage.removeItem('dolavex_admin_logged'); location.reload();}
+function showPanel(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminPanel').style.display='block';
+  loadData();
+}
+if(localStorage.getItem('dolavex_admin_logged')==='1') showPanel();
+
+function loadData(){
+  let users=[];
+  let single=JSON.parse(localStorage.getItem('dolavex_user')||'null');
+  if(single) users.push(single);
+  let all=JSON.parse(localStorage.getItem('dolavex_all_users')||'[]');
+  if(all.length>0) users=all;
+
+  let totalReal=0, totalDemo=0;
+  users.forEach(u=>{totalReal+=(u.realBal||0); totalDemo+=(u.demoBal||0);});
+
+  document.getElementById('totalUsers').innerText=users.length;
+  document.getElementById('totalReal').innerText='KES '+totalReal.toFixed(0);
+  document.getElementById('totalDemo').innerText='KES '+totalDemo.toFixed(0);
+
+  let tbody=document.getElementById('usersTable');
+  if(users.length===0){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#888">No users yet</td></tr>'; return;}
+  tbody.innerHTML=users.map((u,i)=>`
+    <tr>
+      <td>${u.username||'N/A'}</td>
+      <td>${u.phone}</td>
+      <td><input id="real_${i}" value="${u.realBal||0}" type="number"></td>
+      <td><input id="demo_${i}" value="${u.demoBal||0}" type="number"></td>
+      <td><button class="btn green" onclick="saveUser(${i})">SAVE</button></td>
+    </tr>
+  `).join('');
+
+  let withdraws=JSON.parse(localStorage.getItem('dolavex_withdraws')||'[]');
+  document.getElementById('pendingWith').innerText=withdraws.filter(w=>w.status==='pending').length;
+  let wTbody=document.getElementById('withdrawTable');
+  if(withdraws.length>0){
+    wTbody.innerHTML=withdraws.map((w,i)=>`
+      <tr>
+        <td>${w.username}</td>
+        <td>${w.phone}</td>
+        <td>KES ${w.amount}</td>
+        <td style="color:${w.status==='pending'?'#ffab00':'#00ff88'}">${w.status}</td>
+        <td>${w.status==='pending'?`<button class="btn green" onclick="approveWith(${i})">APPROVE</button> <button class="btn red" onclick="rejectWith(${i})">REJECT</button>`:w.status}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+function saveUser(i){
+  let users=[]; let single=JSON.parse(localStorage.getItem('dolavex_user')||'null'); if(single) users.push(single);
+  let real=parseFloat(document.getElementById(`real_${i}`).value)||0;
+  let demo=parseFloat(document.getElementById(`demo_${i}`).value)||0;
+  users[i].realBal=real; users[i].demoBal=demo;
+  localStorage.setItem('dolavex_user',JSON.stringify(users[i]));
+  alert('✅ Balance updated! User will see on next refresh');
+  loadData();
+}
+
+function approveWith(i){
+  let withdraws=JSON.parse(localStorage.getItem('dolavex_withdraws')||'[]');
+  withdraws[i].status='approved';
+  localStorage.setItem('dolavex_withdraws',JSON.stringify(withdraws));
+  loadData();
+  alert('✅ Approved - Send B2C manually via M-Pesa portal');
+}
+function rejectWith(i){
+  let withdraws=JSON.parse(localStorage.getItem('dolavex_withdraws')||'[]');
+  let w=withdraws[i];
+  let user=JSON.parse(localStorage.getItem('dolavex_user')||'{}');
+  if(user.phone===w.phone){user.realBal=(user.realBal||0)+w.amount; localStorage.setItem('dolavex_user',JSON.stringify(user));}
+  withdraws[i].status='rejected';
+  localStorage.setItem('dolavex_withdraws',JSON.stringify(withdraws));
+  loadData();
+}
+
+function changeAdminPass(){
+  let np=document.getElementById('newAdminPass').value.trim();
+  let hasSpecial=/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(np);
+  if(np.length<=5||!hasSpecial){alert('Password >5 chars + special char');return;}
+  adminCred.p=np;
+  localStorage.setItem('dolavex_admin',JSON.stringify(adminCred));
+  alert('✅ Admin password changed to: '+np);
+}
+function clearAllData(){if(confirm('Delete ALL users?')){localStorage.removeItem('dolavex_user'); localStorage.removeItem('dolavex_all_users'); localStorage.removeItem('dolavex_withdraws'); loadData(); alert('Cleared');}}
+</script>
+</body>
+</html>
